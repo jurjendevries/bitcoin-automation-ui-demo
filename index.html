@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Automation Builder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #ff9500;
+            --border-color: #e2e8f0;
+            --bg-gray: #f8fafc;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: var(--bg-gray);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+        
+        .header-description {
+            color: #666;
+        }
+        
+        .automation-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 16px;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .automation-content {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        
+        .trigger-section, .action-section {
+            flex: 1;
+        }
+        
+        .section-label {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        select {
+            background-color: white;
+        }
+        
+        .arrow-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: 32px;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .delete-btn:hover {
+            color: #dc2626;
+        }
+        
+        .add-automation-btn {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #666;
+            font-size: 16px;
+            margin-top: 16px;
+        }
+        
+        .add-automation-btn:hover {
+            border-color: #666;
+            color: #333;
+        }
+        
+        optgroup {
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .preview-section {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f0f9ff;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1e3a8a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-card">
+            <h1 class="header-title">Bitcoin Automation Builder</h1>
+            <p class="header-description">Create automated workflows for your Bitcoin and Lightning transactions.</p>
+        </div>
+        
+        <div id="automations-container">
+            <!-- Automation cards will be inserted here -->
+        </div>
+        
+        <button class="add-automation-btn" onclick="addNewAutomation()">
+            <i data-feather="plus"></i>
+            Add New Automation
+        </button>
+    </div>
+
+    <script>
+        // Initialize Feather icons
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+        });
+
+        const triggerTypes = {
+            'Payment Triggers': {
+                'lightning_payment': 'Lightning Payment Received',
+                'onchain_payment': 'On-chain Payment Received',
+                'invoice_created': 'Invoice Created',
+                'invoice_expired': 'Invoice Expired'
+            },
+            'Network Triggers': {
+                'mempool_event': 'Mempool Event',
+                'block_height': 'Block Height Reached',
+                'network_fee_change': 'Network Fee Rate Changes'
+            },
+            'Wallet Triggers': {
+                'balance_threshold': 'Balance Threshold',
+                'utxo_count': 'UTXO Count Changes',
+                'channel_balance': 'Channel Balance Changes',
+                'channel_state': 'Channel State Changes',
+                'failed_payment': 'Failed Payment Attempts',
+                'transaction_detection': 'Transaction Detection'
+            },
+            'Lightning Node Triggers': {
+                'routing_event': 'Routing Success/Failure',
+                'node_status': 'Node Connection Status',
+                'channel_liquidity': 'Channel Liquidity Changes',
+                'peer_connection': 'Peer Connect/Disconnect'
+            },
+            'External Triggers': {
+                'nostr_event': 'Nostr Event',
+                'webhook': 'Webhook',
+                'time_trigger': 'Time-based Trigger',
+                'rss_feed': 'RSS Feed Updates',
+                'api_response': 'API Response Changes'
+            }
+        };
+
+        const actionTypes = {
+            'Payment Actions': {
+                'split_payment': 'Split Payment',
+                'send_lightning': 'Send Lightning Payment',
+                'send_onchain': 'Send On-chain Payment',
+                'keysend': 'Lightning Keysend',
+                'lnurl_pay': 'LNURL Pay'
+            },
+            'Node Management': {
+                'open_channel': 'Open New Channel',
+                'close_channel': 'Close Channel',
+                'rebalance_channels': 'Rebalance Channels',
+                'adjust_fee_policy': 'Adjust Fee Policy'
+            },
+            'Notifications': {
+                'email_notify': 'Send Email',
+                'ntfy_push': 'Send Ntfy Push Notification',
+                'nostr_dm': 'Send Nostr DM',
+                'telegram_msg': 'Send Telegram Message',
+                'discord_webhook': 'Send Discord Webhook'
+            },
+            'Integration Actions': {
+                'webhook_post': 'Send Webhook POST',
+                'nostr_publish': 'Publish Nostr Event',
+                'api_call': 'Make API Call'
+            },
+            'Wallet Actions': {
+                'consolidate_utxos': 'Consolidate UTXOs',
+                'backup_wallet': 'Backup Wallet',
+                'sign_message': 'Sign Message',
+                'export_data': 'Export Transaction Data'
+            }
+        };
+
+        function createSelect(types, prefix) {
+            let select = '<select>';
+            select += `<option value="">Select ${prefix}</option>`;
+            
+            for (const [category, items] of Object.entries(types)) {
+                select += `<optgroup label="${category}">`;
+                for (const [id, label] of Object.entries(items)) {
+                    select += `<option value="${id}">${label}</option>`;
+                }
+                select += '</optgroup>';
+            }
+            
+            select += '</select>';
+            return select;
+        }
+
+        let automationCount = 0;
+
+        function updatePreview(cardId) {
+            const card = document.getElementById(cardId);
+            const triggerSelect = card.querySelector('.trigger-section select');
+            const actionSelect = card.querySelector('.action-section select');
+            const triggerValue = card.querySelector('.trigger-section input').value;
+            const actionValue = card.querySelector('.action-section input').value;
+            const previewSection = card.querySelector('.preview-section');
+            
+            let previewText = 'When ';
+            
+            if (triggerSelect.value) {
+                const triggerLabel = triggerSelect.options[triggerSelect.selectedIndex].text;
+                previewText += triggerLabel.toLowerCase();
+                if (triggerValue) {
+                    previewText += ` (${triggerValue})`;
+                }
+            } else {
+                previewText += '[select trigger]';
+            }
+            
+            previewText += ', then ';
+            
+            if (actionSelect.value) {
+                const actionLabel = actionSelect.options[actionSelect.selectedIndex].text;
+                previewText += actionLabel.toLowerCase();
+                if (actionValue) {
+                    previewText += ` (${actionValue})`;
+                }
+            } else {
+                previewText += '[select action]';
+            }
+            
+            previewSection.textContent = previewText;
+        }
+
+        function createAutomationCard() {
+            const cardId = 'automation-' + automationCount++;
+            const triggerSelect = createSelect(triggerTypes, 'Trigger');
+            const actionSelect = createSelect(actionTypes, 'Action');
+            
+            const cardHtml = `
+                <div class="automation-card" id="${cardId}">
+                    <button class="delete-btn" onclick="deleteAutomation('${cardId}')">
+                        <i data-feather="trash-2"></i>
+                    </button>
+                    <div class="automation-content">
+                        <div class="trigger-section">
+                            <div class="section-label">If this happens:</div>
+                            ${triggerSelect}
+                            <input type="text" placeholder="Enter trigger value">
+                        </div>
+                        <div class="arrow-icon">
+                            <i data-feather="arrow-right"></i>
+                        </div>
+                        <div class="action-section">
+                            <div class="section-label">Then do this:</div>
+                            ${actionSelect}
+                            <input type="text" placeholder="Enter action value">
+                        </div>
+                    </div>
+                    <div class="preview-section">
+                        When [select trigger], then [select action]
+                    </div>
+                </div>
+            `;
+            
+            const container = document.getElementById('automations-container');
+            container.insertAdjacentHTML('beforeend', cardHtml);
+            
+            const card = document.getElementById(cardId);
+            card.querySelector('.trigger-section select').addEventListener('change', () => updatePreview(cardId));
+            card.querySelector('.action-section select').addEventListener('change', () => updatePreview(cardId));
+            card.querySelector('.trigger-section input').addEventListener('input', () => updatePreview(cardId));
+            card.querySelector('.action-section input').addEventListener('input', () => updatePreview(cardId));
+            
+            feather.replace();
+            return cardId;
+        }
+
+        function deleteAutomation(cardId) {
+            document.getElementById(cardId).remove();
+        }
+
+        function addNewAutomation() {
+            createAutomationCard();
+        }
+
+        // Add initial automation card
+        document.addEventListener('DOMContentLoaded', () => {
+            addNewAutomation();
+        });
+    </script>
+</body>
+</html>
